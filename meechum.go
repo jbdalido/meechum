@@ -1,17 +1,23 @@
 package meechum
 
-type Engine struct {
-	Status *Stats
+import (
+	"github.com/rcrowley/go-metrics"
+	"time"
+)
+
+type Runtime struct {
+	Status   *Stats
+	Backend  *Backend
+	Handlers []Handlers
+	Stats    *Stats
 }
 
 type Stats struct {
-	Requests int64
-	Failures int64
-
-	LastSeenBackend time.Time
-
+	Requests          int64
+	Failures          int64
 	Checks            int
 	ChecksFailures    int
 	KeepAliveFailures int
 	PoolSize          int
+	LastSeenBackend   time.Time
 }
