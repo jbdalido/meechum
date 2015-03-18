@@ -3,22 +3,18 @@ package meechum
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/rcrowley/go-metrics"
+	"github.com/jbdalido/meechum/handler"
+	//	"github.com/rcrowley/go-metrics"
 	"time"
 )
 
 type Runtime struct {
 	Status   *Stats
 	Backend  *Backend
-	Handlers []Handlers
+	Handlers []handler.Handler
 	Stats    *Stats
 	Checks   []*Check
 	Err      error
-}
-
-type Group struct {
-	Name   string
-	Checks []string
 }
 
 type Stats struct {
@@ -87,6 +83,9 @@ func (r *Runtime) getChecksFromGroup(group string) ([]Check, error) {
 	return g.Checks, nil
 }
 
-func (r *Runtime) updateChecksList() error {
+func (r *Runtime) updateChecksList(checkList []string) error {
+	if len(checkList) == 0 {
+		return fmt.Errorf("Checklist is empty, sad story...")
 
+	}
 }

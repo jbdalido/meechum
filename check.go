@@ -16,6 +16,12 @@ type Check struct {
 	Result *chan Result
 }
 
+type Result struct {
+	ErrorCode int
+	Level     int
+	StdOut    string
+}
+
 func NewCheck(data []byte, r *chan Result) (*Check, error) {
 	c := &Check{
 		Result: r,

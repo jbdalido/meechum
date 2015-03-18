@@ -1,14 +1,17 @@
 package handler
 
 type Handler interface {
-	Register(*Handler) error
-	Fire(*Event) error
+	Register(interface{}) error
+	Fire(interface{}) error
+	Levels() []string
+	String() string
 }
 
-type handlers map[string][]*Handler
+var handlers map[string][]Handler
 
-func (h *Handler) Register(n *handler) error {
+func Register(n Handler) error {
 	for _, level := range n.Levels() {
-		handlers[level] = append(handlers[n.Name], n)
+		handlers[level] = append(handlers[n.String()], n)
 	}
+	return nil
 }
