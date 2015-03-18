@@ -12,7 +12,3 @@ func (h *Handler) Register(n *handler) error {
 		handlers[level] = append(handlers[n.Name], n)
 	}
 }
-
-func (h *Handler) Fire(alert *Alert) error {
-
-}

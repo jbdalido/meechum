@@ -58,7 +58,7 @@ func (e *Executor) Do(p string, args []string) (string, error) {
 	}
 
 	// Log and execute
-	log.Infof("Exec %s %s %s", e.Binary, strings.Join(args, " "), execPath)
+	log.Printf("Exec %s %s %s", e.Binary, strings.Join(args, " "), execPath)
 
 	err := cmd.Run()
 	if err != nil {
