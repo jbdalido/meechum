@@ -5,10 +5,11 @@ import (
 )
 
 type Backend interface {
+	Connect(host string) error
 	SetKey(key string, value interface{}) error
 	SetTtlKey(key string, value interface{}, ttl int) error
-	GetKey(key string) (interface{}, error)
-	ListDirectory(dir string) (interface{}, error)
+	GetKey(key string) ([]byte, error)
+	ListDirectory(dir string) ([]string, error)
 	DeleteKey(key string) error
 	UpdateKey(key string, value interface{}) error
 }
@@ -19,9 +20,9 @@ func NewBackend(b string) (Backend, error) {
 	}
 	switch b {
 	case "consul":
-		return Consul{}, nil
+		return NewConsul(), nil
 	case "etcd":
-		return Etcd{}, nil
+		return NewEtcd(), nil
 	}
-	return Consul{}, nil
+	return NewConsul(), nil
 }

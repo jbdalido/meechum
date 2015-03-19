@@ -2,6 +2,8 @@ package meechum
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 	"strings"
 	"time"
 )
@@ -32,7 +34,7 @@ func NewCheck(data []byte, r *chan Result) (*Check, error) {
 		return nil, err
 	}
 	// Extract the right path for the check
-	tmp := strings.Split(Cmd, " ")
+	tmp := strings.Split(c.Cmd, " ")
 	c.File = tmp[0]
 	if len(tmp) > 0 {
 		c.Args = tmp[1 : len(tmp)-1]
@@ -41,7 +43,7 @@ func NewCheck(data []byte, r *chan Result) (*Check, error) {
 	// TODO:
 	//   - ifnot we should ask for a download
 	if _, err := os.Stat(c.File); os.IsNotExist(err) {
-		return nil, fmt.Errorf("The check at %s is not installed on this node", filename)
+		return nil, fmt.Errorf("The check at %s is not installed on this node", c.File)
 	}
 
 	if c.Every == 0 {
@@ -49,7 +51,7 @@ func NewCheck(data []byte, r *chan Result) (*Check, error) {
 	}
 
 	if c.Repeat == 0 {
-		c.Repeat == 120
+		c.Repeat = 120
 	}
 
 	return c, nil
@@ -57,7 +59,7 @@ func NewCheck(data []byte, r *chan Result) (*Check, error) {
 
 func (c *Check) Run() {
 	// Create the tickers
-	m := time.NewTicker(c.Every * time.Second)
+	m := time.NewTicker(time.Duration(c.Every) * time.Second)
 	for {
 		select {
 		case <-m.C:
@@ -67,5 +69,5 @@ func (c *Check) Run() {
 }
 
 func (c *Check) Execute() error {
-
+	return nil
 }

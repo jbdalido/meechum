@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"github.com/jbdalido/meechum/handler"
 	//	"github.com/rcrowley/go-metrics"
+	"log"
 	"time"
 )
 
 type Runtime struct {
 	Status   *Stats
-	Backend  *Backend
+	Backend  Backend
 	Handlers []handler.Handler
 	Stats    *Stats
 	Checks   []*Check
@@ -25,6 +26,10 @@ type Stats struct {
 	KeepAliveFailures int
 	PoolSize          int
 	LastSeenBackend   time.Time
+}
+
+type Alert struct {
+	level int
 }
 
 // NewRuntime returns a backend connected runtime
@@ -42,7 +47,7 @@ func NewRuntime(backend string, host string) (*Runtime, error) {
 
 	return &Runtime{
 		Backend: b,
-	}
+	}, nil
 
 }
 
@@ -53,15 +58,17 @@ func (r *Runtime) Subscribe(groups []string) error {
 		return fmt.Errorf("Error subscribing to 0 group (funny guy)")
 	}
 
+	var checklist []string
+
 	for _, group := range groups {
-		c = r.getChecksFromGroup(group)
+		c, err := r.getChecksFromGroup(group)
 		if err != nil {
 			log.Printf("Cant retrieve configurations for group %s", group)
 		}
-		c.Checks = append(c.Checks, c...)
+		checklist = append(checklist, c...)
 	}
 
-	err := r.UpdateCheckList()
+	err := r.updateChecksList(checklist)
 	if err != nil {
 		return err
 	}
@@ -69,10 +76,10 @@ func (r *Runtime) Subscribe(groups []string) error {
 	return nil
 }
 
-func (r *Runtime) getChecksFromGroup(group string) ([]Check, error) {
+func (r *Runtime) getChecksFromGroup(group string) ([]string, error) {
 	data, err := r.Backend.GetKey("/groups/" + group)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	g := &Group{}
 	err = json.Unmarshal(data, g)
@@ -86,6 +93,50 @@ func (r *Runtime) getChecksFromGroup(group string) ([]Check, error) {
 func (r *Runtime) updateChecksList(checkList []string) error {
 	if len(checkList) == 0 {
 		return fmt.Errorf("Checklist is empty, sad story...")
-
 	}
+	return nil
+}
+
+func (r *Runtime) Run() error {
+	return nil
+}
+
+func (r *Runtime) GetListNodes() ([]*Node, error) {
+	return nil, nil
+}
+func (r *Runtime) GetStatusNode(id string) (*Node, error) {
+	return nil, nil
+}
+
+func (r *Runtime) DeleteNode(id string) error {
+	return nil
+}
+func (r *Runtime) CreateNode(n *Node) error {
+	return nil
+}
+
+func (r *Runtime) DeleteCheck(id string) error {
+	return nil
+}
+func (r *Runtime) UpdateGroup(g *Group) error {
+	return nil
+}
+
+func (r *Runtime) DeleteGroup(id string) error {
+	return nil
+}
+func (r *Runtime) UpdateNode(n *Node) error {
+	return nil
+}
+func (r *Runtime) CreateCheck(c *Check) error {
+	return nil
+}
+func (r *Runtime) CreateGroup(g *Group) error {
+	return nil
+}
+func (r *Runtime) CreateAlert(a *Alert) error {
+	return nil
+}
+func (r *Runtime) ListChecks() ([]*Check, error) {
+	return nil, nil
 }

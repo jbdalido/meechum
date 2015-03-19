@@ -2,7 +2,7 @@ package httpd
 
 import (
 	"encoding/json"
-	"github.com/codegangsta/negroni"
+
 	"github.com/jbdalido/meechum"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
@@ -23,6 +23,7 @@ type HttpdError struct {
 func NewHttpd(meechum *meechum.Runtime, listen string) (*Httpd, error) {
 
 	// TODO: Check listen correct
+	var h *Httpd
 
 	router := httprouter.New()
 	// Setup routes
@@ -30,23 +31,22 @@ func NewHttpd(meechum *meechum.Runtime, listen string) (*Httpd, error) {
 
 	router.GET("/v1/nodes", h.serveListNodes)
 	router.GET("/v1/node/{id}", h.serveStatusNode)
-	router.POST("/v1/node", h.serveAddNode)
+	router.POST("/v1/node", h.serveCreateNode)
 	router.PUT("/v1/node", h.serveUpdateNode)
 	router.DELETE("/v1/node", h.serveUpdateNode)
 
 	router.GET("/v1/checks", h.serveListChecks)
 	router.GET("/v1/check/{id}", h.serveStatusCheck)
-	router.POST("/v1/check", h.serveAddCheck)
+	router.POST("/v1/check", h.serveCreateCheck)
 	router.PUT("/v1/check", h.serveUpdateCheck)
 	router.DELETE("/v1/check", h.serveUpdateCheck)
 
-	router.GET("/v1/checks", h.serveListGroups)
 	router.GET("/v1/group/{id}", h.serveStatusGroup)
-	router.POST("/v1/group", h.serveAddGroup)
+	router.POST("/v1/group", h.serveCreateGroup)
 	router.PUT("/v1/group", h.serveUpdateGroup)
 	router.DELETE("/v1/group", h.serveUpdateGroup)
 
-	router.POST("/v1/alert", h.serveAlert)
+	router.POST("/v1/alert", h.serveCreateAlert)
 
 	return &Httpd{
 		Listen:  listen,
@@ -64,7 +64,7 @@ func (h *Httpd) Start() error {
 }
 
 // servePing returns a simple response to let the client know the server is running.
-func (h *Httpd) serveAlive(w http.ResponseWriter, r *http.Request) {
+func (h *Httpd) serveAlive(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -77,8 +77,8 @@ func (h *Httpd) serveListNodes(w http.ResponseWriter, r *http.Request, _ httprou
 	h.jsonResponse(data, w)
 }
 
-func (h *Httpd) serveStatusNodes(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	data, err := h.Meechum.GetStatusNodes()
+func (h *Httpd) serveListGroups(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	data, err := h.Meechum.GetListNodes()
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
@@ -86,14 +86,14 @@ func (h *Httpd) serveStatusNodes(w http.ResponseWriter, r *http.Request, _ httpr
 }
 
 func (h *Httpd) serveStatusNode(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	data, err := h.Meechum.GetListNode(ps.ByName("id"))
+	data, err := h.Meechum.GetStatusNode(ps.ByName("id"))
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
 	h.jsonResponse(data, w)
 }
 
-func (h *Httpd) serveDeleteNode(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *Httpd) serveDeleteNode(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	err := h.Meechum.DeleteNode(ps.ByName("id"))
 	if err != nil {
 		h.jsonErrorResponse(err, w)
@@ -102,13 +102,13 @@ func (h *Httpd) serveDeleteNode(w http.ResponseWriter, r *http.Request, _ httpro
 }
 
 func (h *Httpd) serveUpdateNode(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	node := &meechum.Node
+	node := &meechum.Node{}
 	err := h.decodeRequest(r, node)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
 
-	data, err := h.Meechum.CreateNode(node)
+	err = h.Meechum.CreateNode(node)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
@@ -117,13 +117,13 @@ func (h *Httpd) serveUpdateNode(w http.ResponseWriter, r *http.Request, ps httpr
 
 func (h *Httpd) serveCreateNode(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// TODO : handle post request in a better way ?
-	node := &meechum.Node
+	node := meechum.Node{}
 	err := h.decodeRequest(r, node)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
 
-	data, err := h.Meechum.CreateNode(node)
+	err = h.Meechum.CreateNode(&node)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
@@ -144,13 +144,13 @@ func (h *Httpd) serveDeleteCheck(w http.ResponseWriter, r *http.Request, ps http
 func (h *Httpd) serveUpdateCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// TODO : handle post request in a better way ?
 	decoder := json.NewDecoder(r.Body)
-	node := &meechum.Node
+	node := meechum.Node{}
 	err := decoder.Decode(node)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
 
-	data, err := h.Meechum.UpdateNode(node)
+	err = h.Meechum.UpdateNode(&node)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
@@ -159,21 +159,36 @@ func (h *Httpd) serveUpdateCheck(w http.ResponseWriter, r *http.Request, ps http
 
 func (h *Httpd) serveCreateCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// TODO : handle post request in a better way ?
-	check := &meechum.Check
+	check := meechum.Check{}
 	err := h.decodeRequest(r, check)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
 
-	data, err := h.Meechum.CreateCheck(check)
+	err = h.Meechum.CreateCheck(&check)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
-// Groups
+func (h *Httpd) serveListChecks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	data, err := h.Meechum.ListChecks()
+	if err != nil {
+		h.jsonErrorResponse(err, w)
+	}
+	h.jsonResponse(data, w)
+}
 
+func (h *Httpd) serveStatusCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	data, err := h.Meechum.ListChecks()
+	if err != nil {
+		h.jsonErrorResponse(err, w)
+	}
+	h.jsonResponse(data, w)
+}
+
+// Groups
 func (h *Httpd) serveDeleteGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	err := h.Meechum.DeleteGroup(ps.ByName("id"))
 	if err != nil {
@@ -183,13 +198,13 @@ func (h *Httpd) serveDeleteGroup(w http.ResponseWriter, r *http.Request, ps http
 }
 
 func (h *Httpd) serveUpdateGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	group := &meechum.Group
+	group := &meechum.Group{}
 	err := h.decodeRequest(r, group)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
 
-	data, err := h.Meechum.UpdateGroup(group)
+	err = h.Meechum.UpdateGroup(group)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
@@ -197,26 +212,51 @@ func (h *Httpd) serveUpdateGroup(w http.ResponseWriter, r *http.Request, ps http
 }
 
 func (h *Httpd) serveCreateGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	group := &meechum.Group
+	group := &meechum.Group{}
 	err := h.decodeRequest(r, group)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
 
-	data, err := h.Meechum.CreateGroup(group)
+	err = h.Meechum.CreateGroup(group)
 	if err != nil {
 		h.jsonErrorResponse(err, w)
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Httpd) decodeRequest(r *http.Request, strc *interface{}) error {
+func (h *Httpd) serveStatusGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	data, err := h.Meechum.ListChecks()
+	if err != nil {
+		h.jsonErrorResponse(err, w)
+	}
+	h.jsonResponse(data, w)
+}
+
+func (h *Httpd) serveCreateAlert(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// TODO : handle post request in a better way ?
+	alert := &meechum.Alert{}
+	err := h.decodeRequest(r, alert)
+	if err != nil {
+		h.jsonErrorResponse(err, w)
+	}
+
+	err = h.Meechum.CreateAlert(alert)
+	if err != nil {
+		h.jsonErrorResponse(err, w)
+	}
+	w.WriteHeader(http.StatusOK)
+
+}
+
+func (h *Httpd) decodeRequest(r *http.Request, strc interface{}) error {
 	// TODO : handle post request in a better way ?
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(node)
+	err := decoder.Decode(strc)
 	if err != nil {
 		return err
 	}
+	return nil
 }
 
 func (h *Httpd) jsonErrorResponse(err error, w http.ResponseWriter) {
@@ -239,10 +279,10 @@ func (h *Httpd) jsonResponse(data interface{}, w http.ResponseWriter) {
 	// Marshall the response
 	jdata, err := json.MarshalIndent(data, "", " ")
 	if err != nil {
-		return err
+		h.jsonErrorResponse(err, w)
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Write(jdata)
-	return nil
+
 }

@@ -23,19 +23,19 @@ func main() {
 	log.Printf("Starting Meechum v%s ...", version)
 
 	// Setup the runtime and connect to the backend
-	mc, err := meechum.NewRuntime(backen, hosts)
+	runtime, err := meechum.NewRuntime(*backend, *hosts)
 	if err != nil {
 		log.Fatalf("Meechum failed to start: %s", err)
 	}
 
 	// Subscribe to group, retrieve informations
-	err = meechum.Subscribe(groups)
+	err = runtime.Subscribe([]string{*groups})
 	if err != nil {
-		log.Fatalf("Meechum started but failed to subscribe to groups %s : %s", groups, err)
+		log.Fatalf("Meechum started but failed to subscribe to groups %s : %s", *groups, err)
 	}
 
 	// Runtime loop
-	err = meechum.Run()
+	err = runtime.Run()
 	if err != nil {
 		log.Fatalf("Meechum stopped", err)
 	}

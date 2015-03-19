@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"github.com/jbdalido/meechum"
 )
 
 type Backend interface {
@@ -15,7 +16,7 @@ type Backend interface {
 // HERE IS A CLIENT TO THE API
 
 type Client struct {
-	Backend *Backend
+	Backend Backend
 }
 
 type Node struct {
@@ -23,7 +24,7 @@ type Node struct {
 	IPAddress []string
 }
 
-func NewClient(b *Backend) (*Client, error) {
+func NewClient(b Backend) (*Client, error) {
 	if b == nil {
 		return nil, fmt.Errorf("You need to select a backend, either etcd of Conseul")
 	}
@@ -40,42 +41,42 @@ func NewClient(b *Backend) (*Client, error) {
 
 // Node functions
 
-func (c *Client) EditNode(node string, value *Node) error {
-
+func (c *Client) EditNode(node string, value *meechum.Node) error {
+	return nil
 }
 
-func (c *Client) AddNode(node string, value *Node) error {
-
+func (c *Client) AddNode(node string, value *meechum.Node) error {
+	return nil
 }
 
 func (c *Client) DeleteNode(node string) error {
-
+	return nil
 }
 
 // Checks functions
 
-func (c *Client) EditCheck(node string, value *Check) error {
-
+func (c *Client) EditCheck(node string, value *meechum.Check) error {
+	return nil
 }
 
-func (c *Client) AddCheck(node string, value *Check) error {
-
+func (c *Client) AddCheck(node string, value *meechum.Check) error {
+	return nil
 }
 
-func (c *Client) DeleteCheck(node string, value *Check) error {
-
+func (c *Client) DeleteCheck(node string, value *meechum.Check) error {
+	return nil
 }
 
 // Groups functions
 
-func (c *Client) EditGroup(node string, value *Group) error {
-
+func (c *Client) EditGroup(node string, value *meechum.Group) error {
+	return nil
 }
 
-func (c *Client) AddGroup(node string, value *Group) error {
-
+func (c *Client) AddGroup(node string, value *meechum.Group) error {
+	return nil
 }
 
-func (c *Client) DeleteGroup(node string, value *Group) error {
-
+func (c *Client) DeleteGroup(node string, value *meechum.Group) error {
+	return nil
 }
