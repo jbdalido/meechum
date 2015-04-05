@@ -5,24 +5,31 @@ import (
 )
 
 type Backend interface {
-	Connect(host string) error
-	SetKey(key string, value interface{}) error
-	SetTtlKey(key string, value interface{}, ttl int) error
+	SetKey(key string, value []byte) error
+	SetTtlKey(key string, value []byte, ttl int) error
 	GetKey(key string) ([]byte, error)
 	ListDirectory(dir string) ([]string, error)
 	DeleteKey(key string) error
-	UpdateKey(key string, value interface{}) error
+	UpdateKey(key string, value []byte) error
 }
 
-func NewBackend(b string) (Backend, error) {
+func NewBackend(b string, host string) (Backend, error) {
 	if b == "" {
 		return nil, fmt.Errorf("Only Consul or Etcd are available")
 	}
 	switch b {
 	case "consul":
-		return NewConsul(), nil
+		c, err := NewConsul(host)
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
 	case "etcd":
-		return NewEtcd(), nil
+		c, err := NewEtcd(host)
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
 	}
-	return NewConsul(), nil
+	return nil, nil
 }

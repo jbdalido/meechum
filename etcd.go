@@ -4,21 +4,16 @@ type Etcd struct {
 	Host string
 }
 
-func NewEtcd() Backend {
+func NewEtcd(host string) (Backend, error) {
 	c := Etcd{}
-
-	return c
+	return c, nil
 }
 
-func (e Etcd) Connect(host string) error {
+func (e Etcd) SetKey(key string, value []byte) error {
 	return nil
 }
 
-func (e Etcd) SetKey(key string, value interface{}) error {
-	return nil
-}
-
-func (e Etcd) SetTtlKey(key string, value interface{}, ttl int) error {
+func (e Etcd) SetTtlKey(key string, value []byte, ttl int) error {
 	return nil
 }
 
@@ -34,6 +29,6 @@ func (e Etcd) DeleteKey(key string) error {
 	return nil
 }
 
-func (e Etcd) UpdateKey(key string, value interface{}) error {
+func (e Etcd) UpdateKey(key string, value []byte) error {
 	return nil
 }

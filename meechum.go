@@ -6,6 +6,8 @@ import (
 	"github.com/jbdalido/meechum/handler"
 	//	"github.com/rcrowley/go-metrics"
 	"log"
+	"os"
+	"os/signal"
 	"time"
 )
 
@@ -14,7 +16,7 @@ type Runtime struct {
 	Backend  Backend
 	Handlers []handler.Handler
 	Stats    *Stats
-	Checks   []*Check
+	Checks   map[string]*Check
 	Err      error
 }
 
@@ -35,12 +37,7 @@ type Alert struct {
 // NewRuntime returns a backend connected runtime
 func NewRuntime(backend string, host string) (*Runtime, error) {
 
-	b, err := NewBackend(backend)
-	if err != nil {
-		return nil, err
-	}
-	// Connect to the backend
-	err = b.Connect(host)
+	b, err := NewBackend(backend, host)
 	if err != nil {
 		return nil, err
 	}
@@ -61,11 +58,14 @@ func (r *Runtime) Subscribe(groups []string) error {
 	var checklist []string
 
 	for _, group := range groups {
+		log.Printf("[Engine] Retrieving checks for group %s", group)
 		c, err := r.getChecksFromGroup(group)
 		if err != nil {
 			log.Printf("Cant retrieve configurations for group %s", group)
+		} else {
+			log.Printf("[Engine] Checks for group %s retrieved", c)
+			checklist = append(checklist, c...)
 		}
-		checklist = append(checklist, c...)
 	}
 
 	err := r.updateChecksList(checklist)
@@ -81,6 +81,9 @@ func (r *Runtime) getChecksFromGroup(group string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	if data == nil {
+		return nil, fmt.Errorf("Group %s is empty", group)
+	}
 	g := &Group{}
 	err = json.Unmarshal(data, g)
 	if err != nil {
@@ -94,10 +97,20 @@ func (r *Runtime) updateChecksList(checkList []string) error {
 	if len(checkList) == 0 {
 		return fmt.Errorf("Checklist is empty, sad story...")
 	}
+
 	return nil
 }
 
 func (r *Runtime) Run() error {
+	killChannel := make(chan os.Signal, 1)
+	signal.Notify(killChannel, os.Interrupt)
+
+	for {
+		switch {
+		case <-killChannel:
+			log.Fatalf("STOPPING MOTHERFUCKER %s")
+		}
+	}
 	return nil
 }
 

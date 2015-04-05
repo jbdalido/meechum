@@ -2,5 +2,5 @@ package meechum
 
 type Group struct {
 	Name   string
-	Checks []string
+	Checks []string `json:"checks"`
 }
