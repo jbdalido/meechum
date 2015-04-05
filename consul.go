@@ -57,6 +57,9 @@ func (c Consul) GetKey(key string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Consul[%d]: %s", time.RequestTime, err)
 	}
+	if kp == nil {
+		return nil, fmt.Errorf("Consul[%d] : Key %s does not exist", time.RequestTime, key)
+	}
 	return kp.Value, nil
 }
 

@@ -3,6 +3,7 @@ package meechum
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ type Check struct {
 	Cmd    string `json:"cmd"`
 	File   string
 	Args   []string
+	Exec   *Executor
 	Result *chan Result
 }
 
@@ -37,7 +39,7 @@ func NewCheck(data []byte, r *chan Result) (*Check, error) {
 	tmp := strings.Split(c.Cmd, " ")
 	c.File = tmp[0]
 	if len(tmp) > 0 {
-		c.Args = tmp[1 : len(tmp)-1]
+		c.Args = tmp[1:len(tmp)]
 	}
 	// Check if the plugin is installed,
 	// TODO:
@@ -47,27 +49,39 @@ func NewCheck(data []byte, r *chan Result) (*Check, error) {
 	}
 
 	if c.Every == 0 {
-		c.Every = 10
+		c.Every = 1
 	}
 
 	if c.Repeat == 0 {
 		c.Repeat = 120
 	}
 
+	c.Exec, err = NewExecutor(c.File, "")
+	if err != nil {
+		return nil, err
+	}
 	return c, nil
 }
 
 func (c *Check) Run() {
 	// Create the tickers
 	m := time.NewTicker(time.Duration(c.Every) * time.Second)
+
 	for {
 		select {
 		case <-m.C:
+
 			c.Execute()
 		}
 	}
 }
 
 func (c *Check) Execute() error {
+	std, err := c.Exec.Do(c.File, c.Args)
+	if err != nil {
+		log.Printf("[Engine][%s] ERROR : %s %s", c.Name, std, err)
+		return err
+	}
+	log.Printf("[Engine][%s] : %s", c.Name, std)
 	return nil
 }

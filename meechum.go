@@ -17,6 +17,7 @@ type Runtime struct {
 	Handlers []handler.Handler
 	Stats    *Stats
 	Checks   map[string]*Check
+	Result   chan Result
 	Err      error
 }
 
@@ -44,6 +45,8 @@ func NewRuntime(backend string, host string) (*Runtime, error) {
 
 	return &Runtime{
 		Backend: b,
+		Checks:  make(map[string]*Check, 150),
+		Result:  make(chan Result, 5000),
 	}, nil
 
 }
@@ -98,17 +101,36 @@ func (r *Runtime) updateChecksList(checkList []string) error {
 		return fmt.Errorf("Checklist is empty, sad story...")
 	}
 
+	for _, check := range checkList {
+
+		data, err := r.Backend.GetKey("/checks/" + check)
+		if err != nil {
+			log.Printf("[Engine] Check %s does not exist %s", check, err)
+			continue
+		}
+
+		c, err := NewCheck(data, &r.Result)
+		if err != nil {
+			log.Printf("[Engine] Check %s creation error %s", check, err)
+		}
+
+		r.Checks[check] = c
+	}
 	return nil
 }
 
 func (r *Runtime) Run() error {
 	killChannel := make(chan os.Signal, 1)
 	signal.Notify(killChannel, os.Interrupt)
+	for name, c := range r.Checks {
+		log.Printf("Running check %s", name)
+		go c.Run()
 
+	}
 	for {
-		switch {
+		select {
 		case <-killChannel:
-			log.Fatalf("STOPPING MOTHERFUCKER %s")
+			log.Fatalf("Stop")
 		}
 	}
 	return nil

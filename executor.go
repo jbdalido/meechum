@@ -2,11 +2,11 @@ package meechum
 
 import (
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"io"
+	"log"
 	"os"
 	"os/exec"
-	"path"
+	//	"path"
 	"strings"
 )
 
@@ -48,9 +48,8 @@ func (e *Executor) Do(p string, args []string) (string, error) {
 	stderr := io.MultiWriter(os.Stderr, buffer)
 
 	// Setup work directory and command
-	execPath := path.Clean(e.Workdir + "/" + p)
+	//execPath := path.Clean(e.Workdir + "/" + p)
 	cmd := &exec.Cmd{
-		Dir:    execPath,
 		Path:   e.Binary,
 		Args:   args,
 		Stdout: stdout,
@@ -58,7 +57,7 @@ func (e *Executor) Do(p string, args []string) (string, error) {
 	}
 
 	// Log and execute
-	log.Printf("Exec %s %s %s", e.Binary, strings.Join(args, " "), execPath)
+	log.Printf("Exec %s %s", e.Binary, strings.Join(args, " "))
 
 	err := cmd.Run()
 	if err != nil {
