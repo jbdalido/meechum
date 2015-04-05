@@ -12,13 +12,13 @@ import (
 )
 
 type Runtime struct {
-	Status   *Stats
-	Backend  Backend
-	Handlers []handler.Handler
-	Stats    *Stats
-	Checks   map[string]*Check
-	Result   chan Result
-	Err      error
+	Status   *Stats            `json:""`
+	Backend  Backend           `json:""`
+	Handlers []handler.Handler `json:""`
+	Stats    *Stats            `json:"stats"`
+	Checks   map[string]*Check `json:"checks"`
+	Result   chan *Result      `json:""`
+	Err      error             `json:""`
 }
 
 type Stats struct {
@@ -46,7 +46,7 @@ func NewRuntime(backend string, host string) (*Runtime, error) {
 	return &Runtime{
 		Backend: b,
 		Checks:  make(map[string]*Check, 150),
-		Result:  make(chan Result, 5000),
+		Result:  make(chan *Result, 5000),
 	}, nil
 
 }
@@ -109,7 +109,7 @@ func (r *Runtime) updateChecksList(checkList []string) error {
 			continue
 		}
 
-		c, err := NewCheck(data, &r.Result)
+		c, err := NewCheck(data, r.Result)
 		if err != nil {
 			log.Printf("[Engine] Check %s creation error %s", check, err)
 		}
@@ -172,6 +172,11 @@ func (r *Runtime) CreateGroup(g *Group) error {
 func (r *Runtime) CreateAlert(a *Alert) error {
 	return nil
 }
-func (r *Runtime) ListChecks() ([]*Check, error) {
-	return nil, nil
+func (r *Runtime) ListChecks() (map[string]*Check, error) {
+	return r.Checks, nil
+}
+
+func (r *Runtime) LiveStats() (string, error) {
+	return fmt.Sprintf("Error Pool : %d", len(r.Result)), nil
+
 }

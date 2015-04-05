@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 	//	"path"
-	"strings"
+	//"strings"
 )
 
 type Executor struct {
@@ -39,31 +39,31 @@ func (e *Executor) SetOut(sout, serr io.Writer) {
 }
 
 // Git execute
-func (e *Executor) Do(p string, args []string) (string, error) {
+func (e *Executor) Do(args []string) (string, error) {
 
 	buffer := NewBufferizer()
-
 	// Set buffers for this run
 	stdout := io.MultiWriter(os.Stdout, buffer)
-	stderr := io.MultiWriter(os.Stderr, buffer)
+	stderr := io.MultiWriter(os.Stdout, buffer)
 
 	// Setup work directory and command
 	//execPath := path.Clean(e.Workdir + "/" + p)
 	cmd := &exec.Cmd{
 		Path:   e.Binary,
-		Args:   args,
+		Args:   append([]string{e.Binary}, args...),
 		Stdout: stdout,
 		Stderr: stderr,
 	}
 
 	// Log and execute
-	log.Printf("Exec %s %s", e.Binary, strings.Join(args, " "))
+	log.Printf("Exec : %s | Args : %s | p %s", e.Binary, args)
 
 	err := cmd.Run()
+	std := buffer.Get()
 	if err != nil {
-		return buffer.Get(), err
+		return std, err
 	}
-	return buffer.Get(), nil
+	return std, nil
 }
 
 type Bufferizer struct {

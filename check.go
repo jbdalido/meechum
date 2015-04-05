@@ -10,23 +10,23 @@ import (
 )
 
 type Check struct {
-	Name   string `json:"name"`
-	Every  int    `json:"every"`
-	Repeat int    `json:"repeat"`
-	Cmd    string `json:"cmd"`
-	File   string
-	Args   []string
-	Exec   *Executor
-	Result *chan Result
+	Name   string       `json:"name"`
+	Every  int          `json:"every"`
+	Repeat int          `json:"repeat"`
+	Cmd    string       `json:"cmd"`
+	File   string       `json:"-"`
+	Args   []string     `json:"-"`
+	Exec   *Executor    `json:"-"`
+	Result chan *Result `json:"-"`
 }
 
 type Result struct {
 	ErrorCode int
-	Level     int
+	Level     string
 	StdOut    string
 }
 
-func NewCheck(data []byte, r *chan Result) (*Check, error) {
+func NewCheck(data []byte, r chan *Result) (*Check, error) {
 	c := &Check{
 		Result: r,
 	}
@@ -70,18 +70,25 @@ func (c *Check) Run() {
 	for {
 		select {
 		case <-m.C:
-
-			c.Execute()
+			std, err := c.Execute()
+			if err != nil {
+				r := &Result{
+					Level:  err.Error(),
+					StdOut: std,
+				}
+				go func() {
+					log.Printf("Sending error to channel")
+					c.Result <- r
+				}()
+			}
 		}
 	}
 }
 
-func (c *Check) Execute() error {
-	std, err := c.Exec.Do(c.File, c.Args)
+func (c *Check) Execute() (string, error) {
+	std, err := c.Exec.Do(c.Args)
 	if err != nil {
-		log.Printf("[Engine][%s] ERROR : %s %s", c.Name, std, err)
-		return err
+		return std, err
 	}
-	log.Printf("[Engine][%s] : %s", c.Name, std)
-	return nil
+	return std, nil
 }

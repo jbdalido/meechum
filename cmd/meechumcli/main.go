@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/jbdalido/meechum"
+	"github.com/jbdalido/meechum/api"
 )
 
 import (
@@ -35,8 +36,16 @@ func main() {
 	}
 
 	// Runtime loop
-	err = runtime.Run()
+	go func() {
+		err = runtime.Run()
+		if err != nil {
+			log.Fatalf("Meechum stopped", err)
+		}
+	}()
+	apiServer, err := api.NewApi(runtime, "127.0.0.1:9000")
 	if err != nil {
-		log.Fatalf("Meechum stopped", err)
+		log.Fatalf("Meechum failed to start api: %s", err)
 	}
+	apiServer.Start()
+
 }
