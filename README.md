@@ -1,4 +1,4 @@
-# Meechum - A new take at monitoring
+# Meechum - WORK IN PROGRESS
 
 Meechum is a three way software,
 
@@ -51,21 +51,3 @@ the api is enable is the meechum node is started with --api
 # MeechumAPI
 
     POST /v1/alert
-
-# Meechum - Storage (consul/etcd)
-
-    /v1 - api Version
-        /groups
-            /cassandra : {"checks":["check-http"]}
-            /basics : {"name":"check_http","every":5,"cmd":"/usr/bin/echo coucou"}
-                
-        /checks
-            
-        /nodes
-            /node1/
-                status
-                specs 
-        
-    
-        /handlers
-            /slack: {"config":}
