@@ -22,12 +22,22 @@ type Check struct {
 }
 
 type Result struct {
-	Code     ErrorCode
-	Level    string
-	StdOut   string
-	Handlers []string
+	Name     string    `json:"name"`
+	Code     ErrorCode `json:"errorcode"`
+	Error    error     `json:"error"`
+	Level    string    `json:"level"`
+	StdOut   string    `json:"stdout"`
+	Handlers []string  `json:"-"`
 }
 
+func (r *Result) MarshalJson() []byte {
+	data, err := json.Marshal(r)
+	if err != nil {
+		log.Printf("[ENGINE] Cannot save check as json %s", err)
+		return []byte{}
+	}
+	return data
+}
 func NewCheck(data []byte, r chan *Result) (*Check, error) {
 	c := &Check{
 		Result: r,
@@ -78,17 +88,16 @@ func (c *Check) Run() {
 		case <-m.C:
 			std, err, code := c.Execute()
 			log.Printf("[ERROR] Code: %d Level: %s", code, code.String())
-			if err != nil {
-				r := &Result{
-					Code:   code,
-					Level:  code.String(),
-					StdOut: std,
-				}
-
-				go func() {
-					c.Result <- r
-				}()
+			r := &Result{
+				Name:   c.Name,
+				Code:   code,
+				Level:  code.String(),
+				StdOut: std,
+				Error:  err,
 			}
+			go func() {
+				c.Result <- r
+			}()
 		}
 	}
 }

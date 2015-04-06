@@ -20,12 +20,13 @@ const (
 )
 
 type Runtime struct {
-	Status  *Stats            `json:""`
-	Backend Backend           `json:""`
-	Stats   *Stats            `json:"stats"`
-	Checks  map[string]*Check `json:"checks"`
-	Result  chan *Result      `json:""`
-	Err     error             `json:""`
+	Status   *Stats `json:""`
+	Hostname string
+	Backend  Backend           `json:""`
+	Stats    *Stats            `json:"stats"`
+	Checks   map[string]*Check `json:"checks"`
+	Result   chan *Result      `json:""`
+	Err      error             `json:""`
 }
 
 type Stats struct {
@@ -49,11 +50,12 @@ func NewRuntime(backend string, host string) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	node := NewNode()
 	return &Runtime{
-		Backend: b,
-		Checks:  make(map[string]*Check, 150),
-		Result:  make(chan *Result, 5000),
+		Backend:  b,
+		Hostname: node.String(),
+		Checks:   make(map[string]*Check, 150),
+		Result:   make(chan *Result, 5000),
 	}, nil
 
 }
@@ -138,6 +140,14 @@ func (r *Runtime) Run() error {
 	for {
 		select {
 		case d := <-r.Result:
+			// Setup the right key in the backend
+			log.Printf("DEBUG IS %s", fmt.Sprintf("/node/%s/%s %s", r.Hostname, d.Name, d.MarshalJson()))
+			err := r.Backend.SetKey(fmt.Sprintf("/node/%s/%s", r.Hostname, d.Name), d.MarshalJson())
+			if err != nil {
+				log.Printf("Cannot set key to backend %s", err)
+				continue
+			}
+			// Send the event to the handlers
 			log.Printf("[Engine] Handling error [%s] LEVEL:%s", r.Result, d.Level)
 			for _, handler := range handlers[d.Level] {
 				go func() {

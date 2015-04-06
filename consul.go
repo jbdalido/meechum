@@ -3,7 +3,7 @@ package meechum
 import (
 	"fmt"
 	"github.com/hashicorp/consul/api"
-	//"log"
+	"log"
 )
 
 type Consul struct {
@@ -35,7 +35,8 @@ func (c Consul) SetKey(key string, value []byte) error {
 	}
 	time, err := c.Client.KV().Put(kp, nil)
 	if err != nil {
-		return fmt.Errorf("Consul[%d]: %s", time.RequestTime, err)
+		log.Printf("Consul[%d]: %s", time, err)
+		return fmt.Errorf("Consul[%d]: %s", time, err)
 	}
 	return nil
 }
