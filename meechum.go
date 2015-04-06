@@ -3,7 +3,6 @@ package meechum
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jbdalido/meechum/handler"
 	//	"github.com/rcrowley/go-metrics"
 	"log"
 	"os"
@@ -11,14 +10,22 @@ import (
 	"time"
 )
 
+//go:generate stringer -type=ErrorCode
+type ErrorCode uint
+
+const (
+	OK ErrorCode = iota
+	WARNING
+	FATAL
+)
+
 type Runtime struct {
-	Status   *Stats            `json:""`
-	Backend  Backend           `json:""`
-	Handlers []handler.Handler `json:""`
-	Stats    *Stats            `json:"stats"`
-	Checks   map[string]*Check `json:"checks"`
-	Result   chan *Result      `json:""`
-	Err      error             `json:""`
+	Status  *Stats            `json:""`
+	Backend Backend           `json:""`
+	Stats   *Stats            `json:"stats"`
+	Checks  map[string]*Check `json:"checks"`
+	Result  chan *Result      `json:""`
+	Err     error             `json:""`
 }
 
 type Stats struct {
@@ -122,13 +129,24 @@ func (r *Runtime) updateChecksList(checkList []string) error {
 func (r *Runtime) Run() error {
 	killChannel := make(chan os.Signal, 1)
 	signal.Notify(killChannel, os.Interrupt)
+
 	for name, c := range r.Checks {
 		log.Printf("Running check %s", name)
 		go c.Run()
-
 	}
+
 	for {
 		select {
+		case d := <-r.Result:
+			log.Printf("[Engine] Handling error [%s] LEVEL:%s", r.Result, d.Level)
+			for _, handler := range handlers[d.Level] {
+				go func() {
+					err := handler.Fire(d)
+					if err != nil {
+						log.Printf("[Engine] Handler \"%s\" failed to fire event %s", handler, r.Result)
+					}
+				}()
+			}
 		case <-killChannel:
 			log.Fatalf("Stop")
 		}

@@ -10,7 +10,6 @@ type Backend interface {
 	GetKey(key string) ([]byte, error)
 	ListDirectory(dir string) ([]string, error)
 	DeleteKey(key string) error
-	UpdateKey(key string, value []byte) error
 }
 
 func NewBackend(b string, host string) (Backend, error) {

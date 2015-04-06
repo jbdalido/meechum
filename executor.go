@@ -3,9 +3,10 @@ package meechum
 import (
 	"fmt"
 	"io"
-	"log"
+	//"log"
 	"os"
 	"os/exec"
+	"syscall"
 	//	"path"
 	//"strings"
 )
@@ -39,7 +40,7 @@ func (e *Executor) SetOut(sout, serr io.Writer) {
 }
 
 // Git execute
-func (e *Executor) Do(args []string) (string, error) {
+func (e *Executor) Do(args []string) (string, error, int) {
 
 	buffer := NewBufferizer()
 	// Set buffers for this run
@@ -47,7 +48,6 @@ func (e *Executor) Do(args []string) (string, error) {
 	stderr := io.MultiWriter(os.Stdout, buffer)
 
 	// Setup work directory and command
-	//execPath := path.Clean(e.Workdir + "/" + p)
 	cmd := &exec.Cmd{
 		Path:   e.Binary,
 		Args:   append([]string{e.Binary}, args...),
@@ -55,15 +55,16 @@ func (e *Executor) Do(args []string) (string, error) {
 		Stderr: stderr,
 	}
 
-	// Log and execute
-	log.Printf("Exec : %s | Args : %s | p %s", e.Binary, args)
-
+	// Get error from cmd, stdout/err from the buffer and the exit code
+	// There is no way for me to say if this gonna work under a windows
+	// Environment. Sorry ! PR are welcomes
 	err := cmd.Run()
 	std := buffer.Get()
+	waitStatus := cmd.ProcessState.Sys().(syscall.WaitStatus)
 	if err != nil {
-		return std, err
+		return std, err, waitStatus.ExitStatus()
 	}
-	return std, nil
+	return std, nil, 0
 }
 
 type Bufferizer struct {

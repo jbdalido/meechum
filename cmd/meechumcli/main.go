@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jbdalido/meechum"
 	"github.com/jbdalido/meechum/api"
+	"github.com/jbdalido/meechum/handler/loghandler"
 )
 
 import (
@@ -34,6 +35,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Meechum started but failed to subscribe to groups %s : %s", *groups, err)
 	}
+
+	meechum.RegisterHandler(logHandler.NewLogHandler())
 
 	// Runtime loop
 	go func() {

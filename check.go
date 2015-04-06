@@ -10,20 +10,22 @@ import (
 )
 
 type Check struct {
-	Name   string       `json:"name"`
-	Every  int          `json:"every"`
-	Repeat int          `json:"repeat"`
-	Cmd    string       `json:"cmd"`
-	File   string       `json:"-"`
-	Args   []string     `json:"-"`
-	Exec   *Executor    `json:"-"`
-	Result chan *Result `json:"-"`
+	Name     string       `json:"name"`
+	Every    int          `json:"every"`
+	Repeat   int          `json:"repeat"`
+	Cmd      string       `json:"cmd"`
+	Handlers []string     `json:"handlers"`
+	File     string       `json:"-"`
+	Args     []string     `json:"-"`
+	Exec     *Executor    `json:"-"`
+	Result   chan *Result `json:"-"`
 }
 
 type Result struct {
-	ErrorCode int
-	Level     string
-	StdOut    string
+	Code     ErrorCode
+	Level    string
+	StdOut   string
+	Handlers []string
 }
 
 func NewCheck(data []byte, r chan *Result) (*Check, error) {
@@ -48,6 +50,10 @@ func NewCheck(data []byte, r chan *Result) (*Check, error) {
 		return nil, fmt.Errorf("The check at %s is not installed on this node", c.File)
 	}
 
+	if len(c.Handlers) == 0 {
+		c.Handlers = append(c.Handlers, "log")
+	}
+
 	if c.Every == 0 {
 		c.Every = 1
 	}
@@ -70,14 +76,16 @@ func (c *Check) Run() {
 	for {
 		select {
 		case <-m.C:
-			std, err := c.Execute()
+			std, err, code := c.Execute()
+			log.Printf("[ERROR] Code: %d Level: %s", code, code.String())
 			if err != nil {
 				r := &Result{
-					Level:  err.Error(),
+					Code:   code,
+					Level:  code.String(),
 					StdOut: std,
 				}
+
 				go func() {
-					log.Printf("Sending error to channel")
 					c.Result <- r
 				}()
 			}
@@ -85,10 +93,10 @@ func (c *Check) Run() {
 	}
 }
 
-func (c *Check) Execute() (string, error) {
-	std, err := c.Exec.Do(c.Args)
+func (c *Check) Execute() (string, error, ErrorCode) {
+	std, err, code := c.Exec.Do(c.Args)
 	if err != nil {
-		return std, err
+		return std, err, ErrorCode(code)
 	}
-	return std, nil
+	return std, nil, 3
 }
